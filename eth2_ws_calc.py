@@ -2,6 +2,12 @@
 This script calculates the Eth2 Weak Subjectivity period as defined by eth2.0-specs: https://github.com/ethereum/eth2.0-specs/blob/dev/specs/phase0/weak-subjectivity.md
 """
 
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
 from eth2spec.phase0.mainnet import (
     uint64, Ether,
     ETH_TO_GWEI,
@@ -50,12 +56,30 @@ def compute_weak_subjectivity_period(N: uint64, t: Ether) -> uint64:
 
     return ws_period
 
-print("| Safety Decay | Avg. Val. Balance (ETH) | Val. Count | Weak Sub. Period (Epochs) |")
-print("| ---- | ---- | ---- | ---- |")
+graph = {}
+
+# x-axis: 10k vals to 2m vals
+VAL_RANGE = range(10000, 2000000, 100)
+
 for SAFETY_DECAY in [10]:
-    for balance_eth in range(28, 32+1, 4):
-      average_active_validator_balance = Ether(balance_eth)
-      for log_val_count in range(15, 21, 1):
-        validator_count = uint64(2**log_val_count)
-        weak_subjectivity_period = compute_weak_subjectivity_period(validator_count, average_active_validator_balance)
-        print(f"| {SAFETY_DECAY} | {average_active_validator_balance} | {validator_count} | {weak_subjectivity_period} |")
+    for balance_eth in [16, 24, 28, 32]:
+        ws_days = []
+        average_active_validator_balance = Ether(balance_eth)
+        for validator_count in VAL_RANGE:
+            weak_subjectivity_period = compute_weak_subjectivity_period(validator_count, average_active_validator_balance)
+            ws_days.append(weak_subjectivity_period//225) # 225 epochs in a day
+        graph[str(balance_eth)] = ws_days
+
+# Do the graph
+sns.set_palette("pastel", desat=.6)
+fig, ax = plt.subplots()
+ax.ticklabel_format(useOffset=False, style='plain')
+plt.xlabel("validators")
+plt.ylabel("days")
+plt.title("Days of weak subjectivity period as the validator set grows")
+
+for balance, ws_periods in graph.items():
+    ax.plot(VAL_RANGE, ws_periods, label="%s ETH avg balance" % (balance))
+plt.legend(fontsize=18)
+
+plt.show()
