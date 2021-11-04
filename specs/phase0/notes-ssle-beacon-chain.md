@@ -152,8 +152,8 @@ def ssle_process_shuffled_set(state: BeaconState, shuffled_set_and_proof: Shuffl
 
     # We enter the cooldown phase on the epoch before the sampling event
     round_in_ssle_run = epoch % SSLE_RUN_DURATION_IN_EPOCHS
-    if round_in_ssle_run + SSLE_SAMPLE_GAP_EPOCHS + 1 >= SSLE_SAMPLE_GAP_EPOCHS:
-        return True
+    if round_in_ssle_run + SSLE_SAMPLE_GAP_EPOCHS + 1 >= SSLE_RUN_DURATION_IN_EPOCHS:
+        return
 
     shuffle_indices = get_shuffle_indices(state, epoch)
 
