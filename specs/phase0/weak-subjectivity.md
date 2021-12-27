@@ -181,4 +181,30 @@ def is_within_weak_subjectivity_period(store: Store, ws_state: BeaconState, ws_c
 
 ## Distributing Weak Subjectivity Checkpoints
 
-This section will be updated soon.
+### Provider API (internal)
+
+The WS provider exposes the following functions which will be used by the beacon API subsystem when answering to clients.
+
+The WS provider caches WS checkpoints once per day (every 256 epochs).
+
+```python
+class WeakSubjectivityCheckpoint:
+    state: BeaconState
+    root: Root  # State root
+
+@dataclass
+class WSStore(object):
+    ws_checkpoints: Dict[Epoch, WeakSubjectivityCheckpoint] = field(default_factory=dict)
+
+def get_ws_root(epoch: Epoch) -> Root:
+    ws_epoch = epoch - (epoch % 256)  # Get WS epoch of the day
+
+    assert ws_epoch in ws_checkpoints
+    return ws_checkpoints[ws_epoch].root
+
+def get_ws_state(epoch: Epoch) -> BeaconState:
+    ws_epoch = epoch - (epoch % 256)  # Get WS epoch of the day
+
+    assert ws_epoch in ws_checkpoints
+    return ws_checkpoints[ws_epoch].state
+```
