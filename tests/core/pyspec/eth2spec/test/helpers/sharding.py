@@ -49,7 +49,7 @@ class SignedBlobTransaction(Container):
     signature: ECDSASignature
 
 
-def create_blob(spec, rng=None):
+def get_sample_blob(spec, rng=None):
     if rng is None:
         rng = random.Random(5566)
 
@@ -64,7 +64,7 @@ def get_sample_opaque_tx(spec, blob_count=1, rng=None):
     blob_kzgs = []
     blob_versioned_hashes = []
     for _ in range(blob_count):
-        blob = create_blob(spec, rng)
+        blob = get_sample_blob(spec, rng)
         blob_kzg = spec.KZGCommitment(spec.blob_to_kzg(blob))
         blob_versioned_hash = spec.kzg_to_versioned_hash(blob_kzg)
         blobs.append(blob)
@@ -79,3 +79,62 @@ def get_sample_opaque_tx(spec, blob_count=1, rng=None):
     serialized_tx = serialize(signed_blob_tx)
     opaque_tx = spec.uint_to_bytes(spec.BLOB_TX_TYPE) + serialized_tx
     return opaque_tx, blobs, blob_kzgs
+
+
+def compute_proof_from_blobs(spec, blobs):
+    kzgs = [spec.blob_to_kzg(blob) for blob in blobs]
+    r = spec.hash_to_bls_field(spec.BlobsAndCommmitments(blobs=blobs, blob_kzgs=kzgs))
+    r_powers = spec.compute_powers(r, len(kzgs))
+
+    aggregated_poly = spec.Polynomial(spec.matrix_lincomb(blobs, r_powers))
+    aggregated_poly_commitment = spec.KZGCommitment(spec.lincomb(kzgs, r_powers))
+
+    x = spec.hash_to_bls_field(spec.PolynomialAndCommitment(
+        polynomial=aggregated_poly,
+        commitment=aggregated_poly_commitment,
+    ))
+    return compute_proof_single(spec, aggregated_poly, x)
+
+
+def compute_proof_single(spec, polynomial, x):
+    polynomial_in_int = [int(i) for i in polynomial]
+    quotient_polynomial = div_polys(spec, polynomial_in_int, [-int(x), 1])
+    return spec.lincomb(spec.KZG_SETUP_G1[:len(quotient_polynomial)], quotient_polynomial)
+
+
+def eval_poly_at(spec, p, x):
+    """
+    Evaluate polynomial p (coefficient form) at point x
+    """
+    y = 0
+    power_of_x = 1
+    for i, p_coeff in enumerate(p):
+        y += power_of_x * p_coeff
+        power_of_x = (power_of_x * x) % spec.BLS_MODULUS
+    return y % spec.BLS_MODULUS
+
+
+def commit_to_poly(spec, polynomial):
+    """
+    Kate commitment to polynomial in coefficient form
+    """
+    return spec.lincomb(spec.KZG_SETUP_G1[:len(polynomial)], polynomial)
+
+
+def div_polys(spec, a, b):
+    """
+    Long polynomial difivion for two polynomials in coefficient form
+    """
+    a = [x for x in a]
+    o = []
+    apos = len(a) - 1
+    bpos = len(b) - 1
+    diff = apos - bpos
+    while diff >= 0:
+        quot = spec.div(a[apos], b[bpos])
+        o.insert(0, quot)
+        for i in range(bpos, -1, -1):
+            a[diff + i] -= b[i] * quot
+        apos -= 1
+        diff -= 1
+    return [x % spec.BLS_MODULUS for x in o]
