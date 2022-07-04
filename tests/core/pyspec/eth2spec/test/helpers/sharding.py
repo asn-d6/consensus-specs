@@ -102,18 +102,6 @@ def compute_proof_single(spec, polynomial, x):
     return spec.lincomb(spec.KZG_SETUP_G1[:len(quotient_polynomial)], quotient_polynomial)
 
 
-def eval_poly_at(spec, p, x):
-    """
-    Evaluate polynomial p (coefficient form) at point x
-    """
-    y = 0
-    power_of_x = 1
-    for i, p_coeff in enumerate(p):
-        y += power_of_x * p_coeff
-        power_of_x = (power_of_x * x) % spec.BLS_MODULUS
-    return y % spec.BLS_MODULUS
-
-
 def div_polys(spec, a, b):
     """
     Long polynomial difivion for two polynomials in coefficient form

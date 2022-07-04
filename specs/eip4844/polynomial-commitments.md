@@ -153,14 +153,20 @@ def evaluate_polynomial_in_evaluation_form(poly: Sequence[BLSFieldElement], x: B
     Uses the barycentric formula:
        f(x) = (1 - x**WIDTH) / WIDTH  *  sum_(i=0)^WIDTH  (f(DOMAIN[i]) * DOMAIN[i]) / (x - DOMAIN[i])
     """
-    width = len(poly)
-    assert width == FIELD_ELEMENTS_PER_BLOB
-    inverse_width = bls_modular_inverse(width)
+    # width = len(poly)
+    # assert width == FIELD_ELEMENTS_PER_BLOB
+    # inverse_width = bls_modular_inverse(width)
 
-    r = 0
-    for i in range(width):
-        r += div(int(poly[i]) * int(ROOTS_OF_UNITY[i]), (x - ROOTS_OF_UNITY[i]))
-    r = r * (pow(x, width, BLS_MODULUS) - 1) * inverse_width % BLS_MODULUS
+    # r = 0
+    # for i in range(width):
+    #     r += div(int(poly[i]) * int(ROOTS_OF_UNITY[i]), (x - ROOTS_OF_UNITY[i]))
+    # r = r * (pow(x, width, BLS_MODULUS) - 1) * inverse_width % BLS_MODULUS
+    # return r
 
-    return r
+    y = 0
+    power_of_x = 1
+    for i, p_coeff in enumerate(poly):
+        y += power_of_x * p_coeff
+        power_of_x = (power_of_x * x) % BLS_MODULUS
+    return y % BLS_MODULUS
 ```
