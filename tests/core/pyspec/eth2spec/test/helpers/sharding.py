@@ -114,13 +114,6 @@ def eval_poly_at(spec, p, x):
     return y % spec.BLS_MODULUS
 
 
-def commit_to_poly(spec, polynomial):
-    """
-    Kate commitment to polynomial in coefficient form
-    """
-    return spec.lincomb(spec.KZG_SETUP_G1[:len(polynomial)], polynomial)
-
-
 def div_polys(spec, a, b):
     """
     Long polynomial difivion for two polynomials in coefficient form

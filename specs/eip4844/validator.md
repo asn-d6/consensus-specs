@@ -118,7 +118,6 @@ def verify_blobs_sidecar(slot: Slot, beacon_block_root: Root,
     # Generate random linear combination challenges
     r = hash_to_bls_field(BlobsAndCommmitments(blobs=blobs, blob_kzgs=expected_kzgs))
     r_powers = compute_powers(r, len(expected_kzgs))
-    print('[verify_blobs_sidecar] r_powers', r_powers)
 
     # Create aggregated polynomial in evaluation form
     aggregated_poly = Polynomial(matrix_lincomb(blobs, r_powers))
@@ -128,7 +127,6 @@ def verify_blobs_sidecar(slot: Slot, beacon_block_root: Root,
 
     # Generate challenge `x` and evaluate the aggregated polynomial at `x`
     x = hash_to_bls_field(PolynomialAndCommitment(polynomial=aggregated_poly, commitment=aggregated_poly_commitment))
-    print('x', x)
     y = evaluate_polynomial_in_evaluation_form(aggregated_poly, x)
 
     # Verify aggregated proof

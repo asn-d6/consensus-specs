@@ -13,7 +13,6 @@ from eth2spec.test.helpers.sharding import (
     compute_proof_single,
     compute_proof_from_blobs,
     get_sample_blob,
-    commit_to_poly,
     eval_poly_at,
 )
 from eth2spec.test.helpers.keys import privkeys
@@ -44,7 +43,7 @@ def test_single_proof(spec, state):
     x = 3
     polynomial = get_sample_blob(spec)
     polynomial = [int(i) for i in polynomial]
-    commitment = commit_to_poly(spec, polynomial)
+    commitment = spec.blob_to_kzg(polynomial)
     y = eval_poly_at(spec, polynomial, x)
     proof = compute_proof_single(spec, polynomial, x)
     assert spec.verify_kzg_proof(commitment, x, y, proof)
