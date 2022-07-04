@@ -7,7 +7,6 @@ from py_ecc.optimized_bls12_381 import (  # noqa: F401
     Z1,
     Z2,
     curve_order,
-    field_modulus as FIELD_MODULUS,
     add,
     multiply,
     neg,
@@ -28,6 +27,7 @@ def generate_setup(generator, secret, length):
     return tuple(result)
 
 
+# FFT for group elements
 def fft(vals, modulus, domain):
     if len(vals) == 1:
         return vals
@@ -54,14 +54,14 @@ def compute_roots_of_unity(field_elements_per_blob):
     Compute a list of roots of unity for a given order.
     The order must divide the BLS multiplicative group order, i.e. BLS_MODULUS - 1
     """
-    # assert (FIELD_MODULUS - 1) % curve_order == 0
+    assert (curve_order - 1) % field_elements_per_blob == 0
     roots = []
-    root_of_unity = pow(PRIMITIVE_ROOT_OF_UNITY, (FIELD_MODULUS - 1) // curve_order, FIELD_MODULUS)
+    root_of_unity = pow(PRIMITIVE_ROOT_OF_UNITY, (curve_order - 1) // field_elements_per_blob, curve_order)
 
     current_root_of_unity = 1
     for i in range(field_elements_per_blob):
         roots.append(current_root_of_unity)
-        current_root_of_unity = current_root_of_unity * root_of_unity % FIELD_MODULUS
+        current_root_of_unity = current_root_of_unity * root_of_unity % curve_order
     return roots
 
 
