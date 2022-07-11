@@ -167,7 +167,7 @@ def compute_kzg_proof(polynomial: Sequence[BLSFieldElement], z: BLSFieldElement)
 
     # Calculate quotient polynomial by doing point-by-point division
     quotient_polynomial = [div(a, b) for a, b in zip(polynomial_shifted, denominator_poly)]
-    return KZGProof(lincomb(KZG_SETUP_LAGRANGE[:len(quotient_polynomial)], quotient_polynomial))
+    return KZGProof(lincomb(KZG_SETUP_LAGRANGE, quotient_polynomial))
 ```
 
 ### Polynomials
