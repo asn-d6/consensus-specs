@@ -186,6 +186,9 @@ def evaluate_polynomial_in_evaluation_form(polynomial: Sequence[BLSFieldElement]
     assert width == FIELD_ELEMENTS_PER_BLOB
     inverse_width = bls_modular_inverse(width)
 
+    # Make sure we won't divide by zero during division
+    assert z not in ROOTS_OF_UNITY
+
     result = 0
     for i in range(width):
         result += div(int(polynomial[i]) * int(ROOTS_OF_UNITY[i]), (z - ROOTS_OF_UNITY[i]))
