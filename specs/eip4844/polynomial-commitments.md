@@ -165,13 +165,18 @@ def blob_to_polynomial(blob: Blob) -> Polynomial:
 #### `hash_to_bls_field`
 
 ```python
-def hash_to_bls_field(polys: Sequence[Polynomial],
-                      comms: Sequence[KZGCommitment],
-                      challenge_index: int) -> BLSFieldElement:
+def get_challenges(polys: Sequence[Polynomial],
+                   comms: Sequence[KZGCommitment]) -> BLSFieldElement:
     """
-    Compute 32-byte hash of serialized polynomials and commitments concatenated.
-    This hash is then converted to a BLS field element, where the result is not uniform over the BLS field.
-    Return the BLS field element.
+    Return the two Fiat-Shamir challenges used in the rest of the protocol.
+    The Fiat-Shamir logic works as per the following pseudocode:
+
+       hashed_data = hash(domain_separator, polynomials, commitments)
+       r1 = hash(hashed_data, 0)
+       r2 = hash(hashed_data, 1)
+
+    The two hash outputs are then converted to BLS field elements and returned.
+    The result is not uniform over the BLS field.
     """
     # Append the number of polynomials and the degree of each polynomial as a domain separator
     num_polys = int.to_bytes(len(polys), 8, ENDIANNESS)
@@ -187,10 +192,12 @@ def hash_to_bls_field(polys: Sequence[Polynomial],
     for commitment in comms:
         data += commitment
 
+    # Transcript has been prepared: time to create the challenges
     hashed_data = hash(data)
-    challenge_index_bytes = int.to_bytes(challenge_index, 1, ENDIANNESS)
+    r1 = hash(hashed_data + b'\x00')
+    r2 = hash(hashed_data + b'\x01')
 
-    return bytes_to_bls_field(hash(hashed_data + challenge_index_bytes))
+    return bytes_to_bls_field(r1), bytes_to_bls_field(r2)
 ```
 
 #### `bls_modular_inverse`
@@ -380,9 +387,8 @@ def compute_aggregated_poly_and_commitment(
     polynomials = [blob_to_polynomial(blob) for blob in blobs]
 
     # Generate random linear combination and evaluation challenges
-    r = hash_to_bls_field(polynomials, kzg_commitments, 0)
+    r, evaluation_challenge = get_challenges(polynomials, kzg_commitments)
     r_powers = compute_powers(r, len(kzg_commitments))
-    evaluation_challenge = hash_to_bls_field(polynomials, kzg_commitments, 1)
 
     # Create aggregated polynomial in evaluation form
     aggregated_poly = Polynomial(poly_lincomb(polynomials, r_powers))
