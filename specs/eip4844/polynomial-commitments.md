@@ -430,6 +430,24 @@ def compute_kzg_proof(blob: Blob, z: Bytes32) -> KZGProof:
 #### `compute_kzg_proof_impl`
 
 ```python
+def get_quotient_at_z(z, polynomial, y):
+    """
+    Get q(z): the quotient polynomial evaluated at `z` where z is a root of unity
+    """
+    roots_of_unity_brp = bit_reversal_permutation(ROOTS_OF_UNITY)
+
+    result = 0
+    for i, omega_i in enumerate(roots_of_unity_brp):
+        if omega_i == z:  # skip the evaluation point in the sum
+            continue
+
+        numerator = int(omega_i) * (int(BLS_MODULUS) + int(polynomial[i]) - int(y)) % BLS_MODULUS
+        denominator = int(z) * (int(BLS_MODULUS) + int(z) - int(omega_i)) % BLS_MODULUS
+        result += int(div(numerator, denominator))
+
+    return result
+
+
 def compute_kzg_proof_impl(polynomial: Polynomial, z: BLSFieldElement) -> KZGProof:
     """
     Helper function for compute_kzg_proof() and compute_aggregate_kzg_proof().
@@ -437,13 +455,17 @@ def compute_kzg_proof_impl(polynomial: Polynomial, z: BLSFieldElement) -> KZGPro
     y = evaluate_polynomial_in_evaluation_form(polynomial, z)
     polynomial_shifted = [BLSFieldElement((int(p) - int(y)) % BLS_MODULUS) for p in polynomial]
 
-    # Make sure we won't divide by zero during division
-    assert z not in ROOTS_OF_UNITY
     denominator_poly = [BLSFieldElement((int(x) - int(z)) % BLS_MODULUS)
                         for x in bit_reversal_permutation(ROOTS_OF_UNITY)]
 
-    # Calculate quotient polynomial by doing point-by-point division
-    quotient_polynomial = [div(a, b) for a, b in zip(polynomial_shifted, denominator_poly)]
+    quotient_polynomial = [0] * FIELD_ELEMENTS_PER_BLOB
+    for i, (a, b) in enumerate(zip(polynomial_shifted, denominator_poly)):
+        # If `z` is a root of unity, we handle it as a special case since the denominator will be zero
+        if b == 0:
+            quotient_polynomial[i] = get_quotient_at_z(bit_reversal_permutation(ROOTS_OF_UNITY)[i], polynomial, y)
+        else:
+            quotient_polynomial[i] = int(div(a, b) % BLS_MODULUS)
+
     return KZGProof(g1_lincomb(bit_reversal_permutation(KZG_SETUP_LAGRANGE), quotient_polynomial))
 ```
 
